@@ -25,9 +25,14 @@ def observe_and_add(owner, repo):
 app = Flask(__name__)
 @app.route('/')
 def hello():
-    series = db.get_stats_series(OWNER, REPO)
+    return stats(OWNER, REPO)
+
+
+@app.route('/<owner>/<repo>')
+def stats(owner, repo):
+    series = db.get_stats_series(owner, repo)
     series = format_date_column(series)
-    return render_template('index.html', series=series)
+    return render_template('index.html', owner=owner, repo=repo, series=series)
 
 
 @app.route('/update', methods=['POST'])
