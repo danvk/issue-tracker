@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 '''This is the Heroku scheduler task.'''
 
-import tracker
+import app
 
-OWNER = 'danvk'
-REPO = 'dygraphs'
+REPOS = [
+    'danvk/dygraphs',
+    'hammerlab/cycledash',
+    'hammerlab/pileup.js'
+]
 
-tracker.observe_and_add(OWNER, REPO)
+if __name__ == '__main__':
+    for owner_repo in REPOS:
+        owner, repo = owner_repo.split('/')
+        app.observe_and_add(owner, repo)
