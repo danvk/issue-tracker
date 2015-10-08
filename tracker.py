@@ -8,20 +8,20 @@ from sqlalchemy import Column, Integer, String, Sequence, DateTime
 from sqlalchemy.orm import sessionmaker
 
 from datetime import datetime
+import os
 
 OWNER = 'danvk'
 REPO = 'dygraphs'
 
-#engine = create_engine('sqlite:///issue-tracker.db', echo=True)
-engine = create_engine('postgres:///issue-tracker', echo=True)
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///issue-tracker')
+engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
-session = Session()
 
 
 Base = declarative_base()
 class Counts(Base):
-    __tablename__ = 'Counts'
-    id = Column(Integer, Sequence('user_id_seq'), primary_key=True, nullable=False)
+    __tablename__ = 'counts'
+    id = Column(Integer, primary_key=True, nullable=False)
     owner = Column(String)
     repo = Column(String)
     time =  Column(DateTime, default=datetime.utcnow)
@@ -40,7 +40,6 @@ def store_result(session, owner, repo, stargazers, open_issues, open_pulls):
                  open_issues=open_issues,
                  open_pulls=open_pulls)
     session.add(row)
-    session.commit()
 
 
 def fetch_counts(session, owner, repo):
@@ -59,11 +58,14 @@ def fetch_stats_from_github(g, owner, repo):
 
 def observe_and_add(owner, repo):
     g = Github()
+    session = Session()
     stars, open_issues, open_pulls = fetch_stats_from_github(g, owner, repo)
     store_result(session, owner, repo, stars, open_issues, open_pulls)
+    session.commit()
 
 
 def get_stats_series(owner, repo):
+    session = Session()
     series = fetch_counts(session, owner, repo)
     return series
 
