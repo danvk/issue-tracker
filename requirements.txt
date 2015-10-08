@@ -2,3 +2,4 @@ pygithub
 flask
 gunicorn
 sqlalchemy
+psycopg2

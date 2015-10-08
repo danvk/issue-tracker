@@ -12,7 +12,8 @@ from datetime import datetime
 OWNER = 'danvk'
 REPO = 'dygraphs'
 
-engine = create_engine('sqlite:///issue-tracker.db', echo=True)
+#engine = create_engine('sqlite:///issue-tracker.db', echo=True)
+engine = create_engine('postgres:///issue-tracker', echo=True)
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -69,3 +70,4 @@ def get_stats_series(owner, repo):
 
 if __name__ == '__main__':
     observe_and_add(OWNER, REPO)
+    print get_stats_series(OWNER, REPO)
