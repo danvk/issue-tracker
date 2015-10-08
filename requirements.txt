@@ -1,3 +1,4 @@
 pygithub
 flask
 gunicorn
+sqlalchemy
