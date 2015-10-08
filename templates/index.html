@@ -2,9 +2,9 @@
 <head>
 <title>GitHub Issue Tracker - {{owner}}/{{repo}}</title>
 <style>
-#issues {
+.chart {
   width: 800px;
-  height: 400px;
+  height: 300px;
 }
 </style>
 </head>
@@ -16,8 +16,9 @@
 This service tracks GitHub issues for a repo over time.
 </p>
 
-<div id="issues">
-</div>
+<div id="issues" class="chart"></div>
+<div id="pulls" class="chart"></div>
+<div id="stars" class="chart"></div>
 
 <form method="post" action="/update">
   <input type="submit" value="Update" />
@@ -29,14 +30,35 @@ This service tracks GitHub issues for a repo over time.
 <script>
 var data = {{series|tojson}};
 
-var issues_by_day = [];
+var issues_by_day = [],
+    stars_by_day = [],
+    pulls_by_day = [];
 data.forEach(function(row) {
-  issues_by_day.push([new Date(row[0]), row[2]])
+  var date = new Date(row[0]);
+  stars_by_day.push([date, row[1]])
+  issues_by_day.push([date, row[2]])
+  pulls_by_day.push([date, row[3]])
 });
 
-var g = new Dygraph('issues', issues_by_day, {
+var g_stars = new Dygraph('stars', stars_by_day, {
+      labels: ['Date', 'Stargazers'],
+      legend: 'always',
+      includeZero: true,
+      title: 'Stargazers'
+    });
+
+var g_open_issues = new Dygraph('issues', issues_by_day, {
       labels: ['Date', 'Open Issues'],
-      legend: 'always'
+      legend: 'always',
+      includeZero: true,
+      title: 'Open Issues'
+    });
+
+var g_pulls = new Dygraph('pulls', pulls_by_day, {
+      labels: ['Date', 'Open Pull Requests'],
+      legend: 'always',
+      includeZero: true,
+      title: 'Open Pull Requests'
     });
 
 </script>
