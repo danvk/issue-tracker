@@ -19,6 +19,7 @@ This service tracks GitHub issues for a repo over time.
 <div id="issues" class="chart"></div>
 <div id="pulls" class="chart"></div>
 <div id="stars" class="chart"></div>
+<div id="labels" class="chart"></div>
 
 <form method="post" action="/update">
   <input type="submit" value="Update" />
@@ -28,16 +29,19 @@ This service tracks GitHub issues for a repo over time.
 <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>
 
 <script>
-var data = {{series|tojson}};
+var issues_by_day = {{open_issues|tojson}},
+    pulls_by_day = {{open_pulls|tojson}},
+    stars_by_day = {{stargazers|tojson}},
+    issues_by_label = {{by_label|tojson}};
 
-var issues_by_day = [],
-    stars_by_day = [],
-    pulls_by_day = [];
-data.forEach(function(row) {
-  var date = new Date(row[0]);
-  stars_by_day.push([date, row[1]])
-  issues_by_day.push([date, row[2]])
-  pulls_by_day.push([date, row[3]])
+function firstColumnToDate(row) { row[0] = new Date(row[0]); }
+
+issues_by_day.forEach(firstColumnToDate);
+pulls_by_day.forEach(firstColumnToDate);
+stars_by_day.forEach(firstColumnToDate);
+issues_by_label.forEach(function(row, i) {
+  if (i == 0) return;  // labels
+  return firstColumnToDate(row);
 });
 
 var g_stars = new Dygraph('stars', stars_by_day, {
@@ -59,6 +63,14 @@ var g_pulls = new Dygraph('pulls', pulls_by_day, {
       legend: 'always',
       includeZero: true,
       title: 'Open Pull Requests'
+    });
+
+var g_labels = new Dygraph('labels', issues_by_label.slice(1), {
+      labels: issues_by_label[0],
+      legend: 'always',
+      labelsSeparateLines: true,
+      includeZero: true,
+      title: 'Open Issues by Label'
     });
 
 </script>

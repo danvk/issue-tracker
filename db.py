@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Sequence, DateTime
 from sqlalchemy.orm import sessionmaker
 
+from collections import defaultdict
 from datetime import datetime
 import os
 
@@ -71,8 +72,12 @@ def store_result(owner, repo, stats):
     session.commit()
 
 
+def ordered_labels(label_counts):
+    '''Given time, label, count tuples, return a sorted list of unique labels.'''
+    return list(sorted(set(label for _, label, _ in label_counts)))
+
+
 def get_stats_series(owner, repo):
-    # TODO: return tracker.RepoStats objects?
     session = Session()
     counts = (session.query(Counts.time,
                             Counts.stargazers,
@@ -82,5 +87,38 @@ def get_stats_series(owner, repo):
                      .filter(Counts.repo == repo)
                      .order_by(Counts.time)
                      .all())
-    return counts
+
+    label_counts = (session.query(CountsByLabel.time,
+                                  CountsByLabel.label,
+                                  CountsByLabel.open_issues)
+                           .filter(CountsByLabel.owner == owner)
+                           .filter(CountsByLabel.repo == repo)
+                           .order_by(CountsByLabel.time)
+                           .all())
+
+    # Pull out three separate time series for issues, stargazers and PRs
+    open_issues = []
+    stargazers = []
+    open_pulls = []
+    for time, stars, issues, pulls in counts:
+        stargazers.append((time, stars))
+        open_issues.append((time, issues))
+        open_pulls.append((time, pulls))
+
+    # Group by label
+    date_to_label_to_count = defaultdict(dict)
+    for time, label, count in label_counts:
+        date_to_label_to_count[time][label] = count
+
+    print date_to_label_to_count
+
+    labels = ordered_labels(label_counts)
+
+    by_label = [['Date'] + labels]
+    for date in sorted(date_to_label_to_count.keys()):
+        label_to_count = date_to_label_to_count[date]
+        row = [date] + [label_to_count.get(label, 0) for label in labels]
+        by_label.append(row)
+
+    return stargazers, open_issues, open_pulls, by_label
 

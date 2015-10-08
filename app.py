@@ -30,9 +30,12 @@ def hello():
 
 @app.route('/<owner>/<repo>')
 def stats(owner, repo):
-    series = db.get_stats_series(owner, repo)
-    series = format_date_column(series)
-    return render_template('index.html', owner=owner, repo=repo, series=series)
+    stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
+    stargazers = format_date_column(stargazers)
+    open_issues = format_date_column(open_issues)
+    open_pulls = format_date_column(open_pulls)
+    by_label = [by_label[0]] + format_date_column(by_label[1:])
+    return render_template('index.html', owner=owner, repo=repo, stargazers=stargazers, open_issues=open_issues, open_pulls=open_pulls, by_label=by_label)
 
 
 @app.route('/update', methods=['POST'])
