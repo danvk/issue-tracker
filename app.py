@@ -2,6 +2,7 @@
 
 from flask import Flask, jsonify, render_template
 
+import db
 import tracker
 
 OWNER = 'danvk'
@@ -16,17 +17,22 @@ def format_date_column(series):
     return out
 
 
+def observe_and_add(owner, repo):
+    stats = tracker.fetch_stats_from_github(owner, repo)
+    db.store_result(owner, repo, stats)
+
+
 app = Flask(__name__)
 @app.route('/')
 def hello():
-    series = tracker.get_stats_series(OWNER, REPO)
+    series = db.get_stats_series(OWNER, REPO)
     series = format_date_column(series)
     return render_template('index.html', series=series)
 
 
 @app.route('/update', methods=['POST'])
 def update():
-    tracker.observe_and_add(OWNER, REPO)
+    observe_and_add(OWNER, REPO)
     return 'OK'
 
 
