@@ -1,0 +1,40 @@
+<!doctype html>
+<head>
+<title>GitHub Issue Tracker</title>
+<style>
+#issues {
+  width: 800px;
+  height: 400px;
+}
+</style>
+</head>
+<body>
+
+<p>
+This service tracks GitHub issues for a repo over time.
+</p>
+
+<div id="issues">
+</div>
+
+<form method="post" action="/update">
+  <input type="submit" value="Update" />
+</form>
+
+</body>
+<script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>
+
+<script>
+var data = {{series|tojson}};
+
+var issues_by_day = [];
+data.forEach(function(row) {
+  issues_by_day.push([new Date(row[0]), row[2]])
+});
+
+var g = new Dygraph('issues', issues_by_day, {
+      labels: ['Date', 'Open Issues'],
+      legend: 'always'
+    });
+
+</script>
