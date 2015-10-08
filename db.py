@@ -15,6 +15,16 @@ Session = sessionmaker(bind=engine)
 
 
 Base = declarative_base()
+
+class Repos(Base):
+    __tablename__ = 'repos'
+    id = Column(Integer, primary_key=True, nullable=False)
+    owner = Column(String)
+    repo = Column(String)
+    token = Column(String)
+    add_time = Column(DateTime, default=datetime.utcnow)
+
+
 class Counts(Base):
     __tablename__ = 'counts'
     id = Column(Integer, primary_key=True, nullable=False)
@@ -24,6 +34,7 @@ class Counts(Base):
     stargazers = Column(Integer)
     open_issues = Column(Integer)
     open_pulls = Column(Integer)
+
 
 class CountsByLabel(Base):
     __tablename__ = 'counts_by_label'
