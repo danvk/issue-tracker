@@ -114,11 +114,18 @@ def get_stats_series(owner, repo):
 
     labels = ordered_labels(label_counts)
 
-    by_label = [['Date'] + labels]
+    by_label = []
     for date in sorted(date_to_label_to_count.keys()):
         label_to_count = date_to_label_to_count[date]
         row = [date] + [label_to_count.get(label, 0) for label in labels]
         by_label.append(row)
+
+    try:
+        blank_idx = labels.index('')
+        labels[blank_idx] = '(unlabeled)'
+    except ValueError:
+        pass
+    by_label = [['Date'] + labels] + by_label
 
     return stargazers, open_issues, open_pulls, by_label
 

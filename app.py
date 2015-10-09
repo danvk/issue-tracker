@@ -17,6 +17,13 @@ def format_date_column(series):
     return out
 
 
+def get_current_label_counts(by_label):
+    '''Returns an ordered list of (label, count) tuples.'''
+    pairs = zip(by_label[0][1:], by_label[-1][1:])
+    pairs.sort(key=lambda pair: -pair[1])
+    return pairs
+
+
 def observe_and_add(owner, repo):
     stats = tracker.fetch_stats_from_github(owner, repo)
     db.store_result(owner, repo, stats)
@@ -35,7 +42,17 @@ def stats(owner, repo):
     open_issues = format_date_column(open_issues)
     open_pulls = format_date_column(open_pulls)
     by_label = [by_label[0]] + format_date_column(by_label[1:])
-    return render_template('index.html', owner=owner, repo=repo, stargazers=stargazers, open_issues=open_issues, open_pulls=open_pulls, by_label=by_label)
+
+    current_label_counts = get_current_label_counts(by_label)
+
+    return render_template('index.html',
+            owner=owner,
+            repo=repo,
+            stargazers=stargazers,
+            open_issues=open_issues,
+            open_pulls=open_pulls,
+            by_label=by_label,
+            current_label_counts=current_label_counts)
 
 
 @app.route('/update', methods=['POST'])

@@ -6,6 +6,12 @@
   width: 800px;
   height: 300px;
 }
+table td:first-child, table th:first-child {
+  text-align: right;
+}
+table td:nth-child(2), table th:nth-child(2) {
+  text-align: left;
+}
 </style>
 </head>
 <body>
@@ -20,6 +26,18 @@ This service tracks GitHub issues for a repo over time.
 <div id="pulls" class="chart"></div>
 <div id="stars" class="chart"></div>
 <div id="labels" class="chart"></div>
+
+<div id="current-labels">
+  <table>
+    <tr><th>Count</th><th>Label</th></tr>
+    {% for label_count in current_label_counts %}
+    <tr>
+      <td>{{label_count[1]}}</td>
+      <td><a href="https://github.com/{{owner}}/{{repo}}/labels/{{label_count[0]}}">{{label_count[0]}}</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
 
 <form method="post" action="/update">
   <input type="submit" value="Update" />
