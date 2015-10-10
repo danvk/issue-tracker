@@ -105,3 +105,23 @@ def test_get_initial_labels():
              ('2014-10-20T23:53:09Z', 'imported', -1),
              ('2014-10-20T23:53:09Z', None, -1)
             ])
+
+
+def test_find_first_date():
+    eq_(backfill.find_first_date(backfill.issue_events(closed_issue)),
+        '2015-09-29T15:14:05Z')
+
+    eq_(backfill.find_first_date(backfill.issue_events(tortured_history_issue)),
+        '2014-10-20T22:44:07Z')
+
+
+def test_next_date():
+    next_date = backfill.next_date
+    eq_(next_date('2015-09-29T15:14:05Z'), '2015-09-30')
+    eq_(next_date('2014-10-20T22:44:07Z'), '2014-10-21')
+
+
+def test_all_dates():
+    all_dates = backfill.all_dates
+    eq_(all_dates('2015-09-29', '2015-10-03 12:34:56'),
+        ['2015-09-29', '2015-09-30', '2015-10-01', '2015-10-02', '2015-10-03'])
