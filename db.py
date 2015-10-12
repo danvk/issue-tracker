@@ -129,3 +129,12 @@ def get_stats_series(owner, repo):
 
     return stargazers, open_issues, open_pulls, by_label
 
+
+def store_backfill(owner, repo, backfill_array):
+    '''Backfill array is a table with a header row:
+    
+    Date,Unlabeled,bug,feature
+    2015-10-01,2,1,1
+    2015-10-02,3,2,1
+    ...
+    '''
