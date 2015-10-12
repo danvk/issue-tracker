@@ -2,8 +2,9 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Sequence, DateTime
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String, Sequence, DateTime, ForeignKey
+from sqlalchemy.orm import sessionmaker, relationship, backref
+import dateutil
 
 from collections import defaultdict
 from datetime import datetime
@@ -35,6 +36,15 @@ class Counts(Base):
     stargazers = Column(Integer)
     open_issues = Column(Integer)
     open_pulls = Column(Integer)
+
+
+class OpenIssues(Base):
+    __tablename__ = 'open_issues'
+    id = Column(Integer, primary_key=True, nullable=False)
+    repo_id = Column(Integer, ForeignKey('repos.id'))
+    repo = relationship("Repos", backref="open_issues")
+    time = Column(DateTime, default=datetime.utcnow)
+    count = Column(Integer)
 
 
 class CountsByLabel(Base):
@@ -77,8 +87,15 @@ def ordered_labels(label_counts):
     return list(sorted(set(label for _, label, _ in label_counts)))
 
 
+def get_repo(session, owner, repo):
+    return (session.query(Repos).filter(Repos.owner == owner).filter(Repos.repo == repo))[0]
+
+
 def get_stats_series(owner, repo):
     session = Session()
+    # repo = get_repo(session, owner, repo)
+    # open_issues = repo.open_issues().order_by(OpenIssues.time)
+
     counts = (session.query(Counts.time,
                             Counts.stargazers,
                             Counts.open_issues,
@@ -110,8 +127,6 @@ def get_stats_series(owner, repo):
     for time, label, count in label_counts:
         date_to_label_to_count[time][label] = count
 
-    print date_to_label_to_count
-
     labels = ordered_labels(label_counts)
 
     by_label = []
@@ -130,11 +145,29 @@ def get_stats_series(owner, repo):
     return stargazers, open_issues, open_pulls, by_label
 
 
-def store_backfill(owner, repo, backfill_array):
-    '''Backfill array is a table with a header row:
+def store_backfill(owner, repo, backfill_data):
+    '''Store backfilled issue and star data in the database.
     
-    Date,Unlabeled,bug,feature
-    2015-10-01,2,1,1
-    2015-10-02,3,2,1
-    ...
+    The backfill data is a dict with a subset of these keys:
+    
+    - stars
+    - open_issues
+    - issues_by_label
+
+    Values are lists of ['YYYY-MM-DD', count] tuples.
     '''
+    session = Session()
+
+    repo = get_repo(session, owner, repo)
+
+    if 'open_issues' in backfill_data:
+        open_issues = backfill['open_issues']
+
+        # Clear out old values
+        repo.open_issues.delete()
+
+        session.add_all([OpenIssues(repo_id=repo.id,
+                                    time=dateutil.parser.parse(row[0]),
+                                    count=int(row[1])) for row in open_issues])
+
+    session.commit()

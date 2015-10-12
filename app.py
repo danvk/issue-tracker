@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from collections import defaultdict
+
 from flask import Flask, jsonify, render_template
 
 import db
@@ -53,6 +55,38 @@ def stats(owner, repo):
             open_pulls=open_pulls,
             by_label=by_label,
             current_label_counts=current_label_counts)
+
+
+@app.route('/<owner>/<repo>/json')
+def stats_json(owner, repo):
+    stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
+    stargazers = format_date_column(stargazers)
+    open_issues = format_date_column(open_issues)
+    open_pulls = format_date_column(open_pulls)
+    by_label = [by_label[0]] + format_date_column(by_label[1:])
+
+    by_label_dict = defaultdict(list)
+    for row in by_label[1:]:  # drop header row
+        for idx, col in enumerate(row):
+            if idx == 0: continue  # drop date column
+            label = by_label[0][idx]
+            if label == '(unlabeled)':
+                label = ''
+            by_label_dict[label].append((row[0], col))
+
+    return jsonify({
+        'owner': owner,
+        'repo': repo,
+        'stargazers': stargazers,
+        'open_issues': open_issues,
+        'open_pulls': open_pulls,
+        'by_label': by_label_dict
+    })
+
+
+@app.route('/<owner>/<repo>/backfill', methods=['POST'])
+def backfill(owner, repo):
+    pass
 
 
 @app.route('/update', methods=['POST'])
