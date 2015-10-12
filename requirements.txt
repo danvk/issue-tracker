@@ -4,3 +4,4 @@ gunicorn
 sqlalchemy
 psycopg2
 nose
+python-dateutil
