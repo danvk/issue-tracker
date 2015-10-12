@@ -9,12 +9,53 @@ import sys
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+import github
 import tracker
 
 OWNER = 'danvk'
 REPO = 'dygraphs'
 
 CACHE_DIR = 'issue-tracker-backfill'
+
+
+class Stargazer(github.GithubObject.NonCompletableGithubObject):
+    @property
+    def starred_at(self):
+        """
+        :type: datetime.datetime
+        """
+        return self._starred_at.value
+
+    @property
+    def user(self):
+        """
+        :type: :class:`github.NamedUser`
+        """
+        return self._user.value
+
+    def _initAttributes(self):
+        self._starred_at = github.GithubObject.NotSet
+        self._user = github.GithubObject.NotSet
+        self._url = github.GithubObject.NotSet
+
+    def _useAttributes(self, attributes):
+        if 'starred_at' in attributes:
+            self._starred_at = self._makeDatetimeAttribute(attributes['starred_at'])
+        if 'user' in attributes:
+            self._user = self._makeClassAttribute(github.NamedUser.NamedUser, attributes['user'])
+
+
+def get_stargazers(repo):
+    return github.PaginatedList.PaginatedList(
+        Stargazer,
+        repo._requester,
+        repo.url + "/stargazers",
+        None,
+        # XXX: pygithub doesn't support this:
+        headers={
+            'Accept': 'application/vnd.github.v3.star+json'
+        }
+    )
 
 
 def fetch_full_issue(issue):
@@ -147,6 +188,14 @@ if __name__ == '__main__':
     g = tracker.get_github()
 
     repo = g.get_user(OWNER).get_repo(REPO)
+
+    sys.stderr.write('Fetching %d stargazers...\n' % repo.stargazers_count)
+    date_to_gazer_delta = defaultdict(int)
+    for gazer in get_stargazers(repo):
+        dt = gazer.starred_at
+        d = (dt.date() + timedelta(days=1)).strftime('%Y-%m-%d')
+        date_to_gazer_delta[d] += 1
+
     # issues = fetch_all_issues(repo)
     issues = fetch_all_issues_from_cache()
     sys.stderr.write('Loaded %d issues\n' % len(issues))
@@ -161,12 +210,18 @@ if __name__ == '__main__':
         label_to_deltas[label][yyyy_mm_dd] += delta
     labels = label_to_deltas.keys()
 
-    label_to_count = {label: 0 for label in labels}
-    print '\t'.join(['Date'] + [x if x else 'Unlabeled' for x in labels]).encode('utf8')
-    for date in dates:
-        for label in labels:
-            label_to_count[label] += label_to_deltas[label][date]
-        print '\t'.join([date] + [str(label_to_count[label]) for label in labels])
+    # label_to_count = {label: 0 for label in labels}
+    # print '\t'.join(['Date'] + [x if x else 'Unlabeled' for x in labels]).encode('utf8')
+    # for date in dates:
+    #     for label in labels:
+    #         label_to_count[label] += label_to_deltas[label][date]
+    #     print '\t'.join([date] + [str(label_to_count[label]) for label in labels])
+
+    stargazers = 0
+    for date in all_dates(min(date_to_gazer_delta.keys())):
+        stargazers += date_to_gazer_delta[date]
+        print '%s\t%d' % (date, stargazers)
+
 
     # Possible events:
     # ([u'referenced', u'subscribed', u'unlabeled', u'reopened', u'assigned', u'renamed', u'labeled', u'unassigned', u'milestoned', u'head_ref_deleted', u'closed', u'mentioned', u'head_ref_restored', u'demilestoned', u'merged'])
