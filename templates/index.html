@@ -12,6 +12,19 @@ table td:first-child, table th:first-child {
 table td:nth-child(2), table th:nth-child(2) {
   text-align: left;
 }
+#by-label-legend, #labels {
+  display: inline-block;
+  vertical-align: top;
+}
+.dygraph-legend {
+  left: 70px !important;
+  top: 30px !important;
+  width: auto !important;
+  min-width: 120px;
+  padding: 4px;
+  border: 1px solid #aaa;
+}
+      
 </style>
 </head>
 <body>
@@ -25,22 +38,25 @@ This service tracks GitHub issues for a repo over time.
 <div id="issues" class="chart"></div>
 <div id="pulls" class="chart"></div>
 <div id="stars" class="chart"></div>
-<div id="labels" class="chart"></div>
+<div class="labels-chart-holder">
+  <div id="labels" class="chart"></div>
+  <div id="by-label-legend" class="legend"></div>
 
-<div id="current-labels">
-  <table>
-    <tr><th>Count</th><th>Label</th></tr>
-    {% for label_count in current_label_counts %}
-    <tr>
-      <td>{{label_count[1]}}</td>
-      <td><a href="https://github.com/{{owner}}/{{repo}}/labels/{{label_count[0]}}">{{label_count[0]}}</a></td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div id="current-labels">
+    <table>
+      <tr><th>Count</th><th>Label</th></tr>
+      {% for label_count in current_label_counts %}
+      <tr>
+        <td>{{label_count[1]}}</td>
+        <td><a href="https://github.com/{{owner}}/{{repo}}/labels/{{label_count[0]}}">{{label_count[0]}}</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
 </div>
 
-<form method="post" action="/update">
-  <input type="submit" value="Update" />
+<form method="post" action="/{{owner}}/{{repo}}/update">
+  <input type="submit" value="Update Now" />
 </form>
 
 </body>
@@ -65,30 +81,41 @@ issues_by_label.forEach(function(row, i) {
 var g_stars = new Dygraph('stars', stars_by_day, {
       labels: ['Date', 'Stargazers'],
       legend: 'always',
+      labelsSeparateLines: true,
       includeZero: true,
-      title: 'Stargazers'
+      title: 'Stargazers',
+      gridLineWidth: 0.1,
+      fillGraph: true
     });
 
 var g_open_issues = new Dygraph('issues', issues_by_day, {
       labels: ['Date', 'Open Issues'],
       legend: 'always',
+      labelsSeparateLines: true,
       includeZero: true,
-      title: 'Open Issues'
+      title: 'Open Issues',
+      gridLineWidth: 0.1,
+      fillGraph: true
     });
 
 var g_pulls = new Dygraph('pulls', pulls_by_day, {
       labels: ['Date', 'Open Pull Requests'],
       legend: 'always',
+      labelsSeparateLines: true,
       includeZero: true,
-      title: 'Open Pull Requests'
+      title: 'Open Pull Requests',
+      gridLineWidth: 0.1,
+      fillGraph: true
     });
 
 var g_labels = new Dygraph('labels', issues_by_label.slice(1), {
       labels: issues_by_label[0],
+      labelsDiv: 'by-label-legend',
       legend: 'always',
       labelsSeparateLines: true,
       includeZero: true,
-      title: 'Open Issues by Label'
+      title: 'Open Issues by Label',
+      gridLineWidth: 0.1
     });
 
 </script>
