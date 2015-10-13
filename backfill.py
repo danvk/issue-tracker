@@ -164,22 +164,24 @@ if __name__ == '__main__':
     labels = label_to_deltas.keys()
 
     label_to_count = {label: 0 for label in labels}
+    by_label = defaultdict(list)
     for date in dates:
         for label in labels:
             label_to_count[label] += label_to_deltas[label][date]
+            by_label[label].append((date, label_to_count[label]))
 
-    open_issues = label_to_deltas[None]
-    del label_to_deltas[None]
+    open_issues = by_label[None]
+    del by_label[None]
 
     obj = {
         'owner': OWNER,
         'repo': REPO,
-        'open_issues': label_to_deltas[None],
+        'open_issues': open_issues,
         # TODO: open_pulls
         # TODO: stargazers; see https://github.com/PyGithub/PyGithub/issues/345
-        'by_label': label_to_deltas
+        'by_label': by_label
     }
-    print json.dump(obj, indent=2)
+    print json.dumps(obj, indent=2)
 
 
     # Possible events:
