@@ -95,11 +95,21 @@ function extend(obj, new_attrs) {
   return out;
 }
 
+function zeropad(x) { return (x < 10) ? '0' + x : x; }
+
 var BASE_CHART_OPTIONS = {
   legend: 'always',
   labelsSeparateLines: true,
   includeZero: true,
   gridLineWidth: 0.1,
+  axes: {
+    x: {
+      valueFormatter: function(millis) {
+        var d = new Date(millis);
+        return d.getFullYear() + '/' + zeropad(1 + d.getMonth()) + '/' + zeropad(d.getDate());
+      }
+    }
+  }
 };
 
 var g_stars = new Dygraph('stars', stars_by_day,
