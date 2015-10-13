@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 import db
 import tracker
@@ -86,7 +86,14 @@ def stats_json(owner, repo):
 
 @app.route('/<owner>/<repo>/backfill', methods=['POST'])
 def backfill(owner, repo):
-    pass
+    db.store_backfill(owner, repo, request.get_json())
+    return 'OK'
+
+
+@app.route('/<owner>/<repo>/add', methods=['POST'])
+def add_repo(owner, repo):
+    db.add_repo(owner, repo, '')
+    return 'OK'
 
 
 @app.route('/update', methods=['POST'])

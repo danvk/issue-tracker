@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Sequence, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship, backref
-import dateutil
+import dateutil.parser
 
 from collections import defaultdict
 from datetime import datetime
@@ -14,6 +14,10 @@ import os
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///issue-tracker')
 engine = create_engine(DATABASE_URL, echo=True)
 Session = sessionmaker(bind=engine)
+
+STARS_LABEL = '__STARS'
+ALL_ISSUES_LABEL = '__ALL'
+PULL_REQUESTS_LABEL = '__PRS'
 
 
 Base = declarative_base()
@@ -27,34 +31,14 @@ class Repos(Base):
     add_time = Column(DateTime, default=datetime.utcnow)
 
 
-class Counts(Base):
-    __tablename__ = 'counts'
-    id = Column(Integer, primary_key=True, nullable=False)
-    owner = Column(String)
-    repo = Column(String)
-    time = Column(DateTime, default=datetime.utcnow)
-    stargazers = Column(Integer)
-    open_issues = Column(Integer)
-    open_pulls = Column(Integer)
-
-
-class OpenIssues(Base):
-    __tablename__ = 'open_issues'
-    id = Column(Integer, primary_key=True, nullable=False)
-    repo_id = Column(Integer, ForeignKey('repos.id'))
-    repo = relationship("Repos", backref="open_issues")
-    time = Column(DateTime, default=datetime.utcnow)
-    count = Column(Integer)
-
-
 class CountsByLabel(Base):
     __tablename__ = 'counts_by_label'
     id = Column(Integer, primary_key=True, nullable=False)
-    owner = Column(String)
-    repo = Column(String)
-    label = Column(String)
+    repo_id = Column(Integer, ForeignKey('repos.id'))
+    repo = relationship("Repos")
+    label = Column(String)  # can also be STARS_LABEL, ALL_ISSUES_LABEL or PULL_REQUESTS_LABEL
     time = Column(DateTime, default=datetime.utcnow)
-    open_issues = Column(Integer)
+    count = Column(Integer)
 
 
 Base.metadata.create_all(engine)
@@ -65,19 +49,17 @@ def store_result(owner, repo, stats):
     now = datetime.utcnow()
 
     session = Session()
-    session.add(Counts(owner=owner,
-                       repo=repo,
-                       time=now,
-                       stargazers=stats.stargazers,
-                       open_issues=stats.open_issues,
-                       open_pulls=stats.open_pulls))
+    repo = get_repo(session, owner, repo)
 
-    for label, open_issues in stats.label_to_count.iteritems():
-        session.add(CountsByLabel(owner=owner,
-                                  repo=repo,
+    session.add(CountsByLabel(repo_id=repo.id, time=now, label=ALL_ISSUES_LABEL, count=stats.open_issues))
+    session.add(CountsByLabel(repo_id=repo.id, time=now, label=PULL_REQUESTS_LABEL, count=stats.open_pulls))
+    session.add(CountsByLabel(repo_id=repo.id, time=now, label=STARS_LABEL, count=stats.stargazers))
+
+    for label, count in stats.label_to_count.iteritems():
+        session.add(CountsByLabel(repo_id=repo.id,
                                   time=now,
                                   label=label,
-                                  open_issues=open_issues))
+                                  count=count))
 
     session.commit()
 
@@ -88,39 +70,31 @@ def ordered_labels(label_counts):
 
 
 def get_repo(session, owner, repo):
-    return (session.query(Repos).filter(Repos.owner == owner).filter(Repos.repo == repo))[0]
+    return (session.query(Repos).filter(Repos.owner == owner).filter(Repos.repo == repo)).one()
 
 
 def get_stats_series(owner, repo):
     session = Session()
-    # repo = get_repo(session, owner, repo)
-    # open_issues = repo.open_issues().order_by(OpenIssues.time)
+    repo = get_repo(session, owner, repo)
 
-    counts = (session.query(Counts.time,
-                            Counts.stargazers,
-                            Counts.open_issues,
-                            Counts.open_pulls)
-                     .filter(Counts.owner == owner)
-                     .filter(Counts.repo == repo)
-                     .order_by(Counts.time)
-                     .all())
+    counts = session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).order_by(CountsByLabel.label, CountsByLabel.time)
 
-    label_counts = (session.query(CountsByLabel.time,
-                                  CountsByLabel.label,
-                                  CountsByLabel.open_issues)
-                           .filter(CountsByLabel.owner == owner)
-                           .filter(CountsByLabel.repo == repo)
-                           .order_by(CountsByLabel.time)
-                           .all())
-
-    # Pull out three separate time series for issues, stargazers and PRs
     open_issues = []
     stargazers = []
     open_pulls = []
-    for time, stars, issues, pulls in counts:
-        stargazers.append((time, stars))
-        open_issues.append((time, issues))
-        open_pulls.append((time, pulls))
+    label_counts = []
+
+    for row in counts:
+        label = row.label
+        pair = (row.time, row.count)
+        if label == ALL_ISSUES_LABEL:
+            open_issues.append(pair)
+        elif label == PULL_REQUESTS_LABEL:
+            open_pulls.append(pair)
+        elif label == STARS_LABEL:
+            stargazers.append(pair)
+        else:
+            label_counts.append((row.time, label, row.count))
 
     # Group by label
     date_to_label_to_count = defaultdict(dict)
@@ -160,14 +134,40 @@ def store_backfill(owner, repo, backfill_data):
 
     repo = get_repo(session, owner, repo)
 
-    if 'open_issues' in backfill_data:
-        open_issues = backfill['open_issues']
 
+    def fill_for_label(label, data):
         # Clear out old values
-        repo.open_issues.delete()
+        session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).filter(CountsByLabel.label == label).delete()
 
-        session.add_all([OpenIssues(repo_id=repo.id,
-                                    time=dateutil.parser.parse(row[0]),
-                                    count=int(row[1])) for row in open_issues])
+        session.add_all([CountsByLabel(repo_id=repo.id,
+                                       label=label,
+                                       time=dateutil.parser.parse(row[0]),
+                                       count=int(row[1])) for row in data])
 
+
+    if 'open_issues' in backfill_data:
+        fill_for_label(ALL_ISSUES_LABEL, backfill_data['open_issues'])
+
+    if 'stargazers' in backfill_data:
+        fill_for_label(STARS_LABEL, backfill_data['stargazers'])
+
+    if 'open_pulls' in backfill_data:
+        fill_for_label(PULL_REQUESTS_LABEL, backfill_data['open_pulls'])
+
+    if 'by_label' in backfill_data:
+        session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).filter(CountsByLabel.label != ALL_ISSUES_LABEL, CountsByLabel.label != STARS_LABEL, CountsByLabel.label != PULL_REQUESTS_LABEL).delete()
+
+        for label, data in backfill_data['by_label'].iteritems():
+            session.add_all([CountsByLabel(repo_id=repo.id,
+                                           label=label,
+                                           time=dateutil.parser.parse(row[0]),
+                                           count=int(row[1])) for row in data])
+
+    session.commit()
+
+
+def add_repo(owner, repo, token):
+    '''Add a new repo to the list of tracked repos.'''
+    session = Session()
+    session.add(Repos(owner=owner, repo=repo, token=token))
     session.commit()
