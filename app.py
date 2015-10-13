@@ -99,9 +99,9 @@ def add_repo(owner, repo):
     return 'OK'
 
 
-@app.route('/update', methods=['POST'])
+@app.route('/<owner>/<repo>/update', methods=['POST'])
 def update():
-    observe_and_add(OWNER, REPO)
+    observe_and_add(owner, repo)
     return 'OK'
 
 
