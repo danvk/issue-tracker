@@ -12,10 +12,6 @@ table td:first-child, table th:first-child {
 table td:nth-child(2), table th:nth-child(2) {
   text-align: left;
 }
-#by-label-legend, #labels {
-  display: inline-block;
-  vertical-align: top;
-}
 .dygraph-legend {
   left: 70px !important;
   top: 30px !important;
@@ -23,6 +19,16 @@ table td:nth-child(2), table th:nth-child(2) {
   min-width: 120px;
   padding: 4px;
   border: 1px solid #aaa;
+}
+#by-label-legend, #labels {
+  display: inline-block;
+  vertical-align: top;
+}
+#by-label-legend > span, #by-label-legend b {
+  font-weight: normal !important;
+}
+#by-label-legend > span.highlight, #by-label-legend > span.highlight b {
+  font-weight: bold !important;
 }
       
 </style>
@@ -78,44 +84,53 @@ issues_by_label.forEach(function(row, i) {
   return firstColumnToDate(row);
 });
 
-var g_stars = new Dygraph('stars', stars_by_day, {
+function extend(obj, new_attrs) {
+  var out = {};
+  for (var k in obj) {
+    out[k] = obj[k];
+  }
+  for (var k in new_attrs) {
+    out[k] = new_attrs[k];
+  }
+  return out;
+}
+
+var BASE_CHART_OPTIONS = {
+  legend: 'always',
+  labelsSeparateLines: true,
+  includeZero: true,
+  gridLineWidth: 0.1,
+};
+
+var g_stars = new Dygraph('stars', stars_by_day,
+    extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Stargazers'],
-      legend: 'always',
-      labelsSeparateLines: true,
-      includeZero: true,
       title: 'Stargazers',
-      gridLineWidth: 0.1,
       fillGraph: true
-    });
+    }));
 
-var g_open_issues = new Dygraph('issues', issues_by_day, {
+var g_open_issues = new Dygraph('issues', issues_by_day,
+    extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Open Issues'],
-      legend: 'always',
-      labelsSeparateLines: true,
-      includeZero: true,
       title: 'Open Issues',
-      gridLineWidth: 0.1,
       fillGraph: true
-    });
+    }));
 
-var g_pulls = new Dygraph('pulls', pulls_by_day, {
+var g_pulls = new Dygraph('pulls', pulls_by_day,
+    extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Open Pull Requests'],
-      legend: 'always',
-      labelsSeparateLines: true,
-      includeZero: true,
       title: 'Open Pull Requests',
-      gridLineWidth: 0.1,
       fillGraph: true
-    });
+    }));
 
-var g_labels = new Dygraph('labels', issues_by_label.slice(1), {
+var g_labels = new Dygraph('labels', issues_by_label.slice(1),
+    extend(BASE_CHART_OPTIONS, {
       labels: issues_by_label[0],
       labelsDiv: 'by-label-legend',
-      legend: 'always',
-      labelsSeparateLines: true,
-      includeZero: true,
       title: 'Open Issues by Label',
-      gridLineWidth: 0.1
-    });
+      highlightSeriesOpts: {
+        strokeWidth: 2
+      }
+    }));
 
 </script>

@@ -15,7 +15,7 @@ def format_date_column(series):
     '''Converts the first column of series to an ISO-8601 string'''
     out = []
     for row in series:
-        out.append([row[0].strftime('%Y-%m-%d %H:%M:%SZ')] + list(row[1:]))
+        out.append([row[0].strftime('%Y-%m-%dT%H:%M:%SZ')] + list(row[1:]))
     return out
 
 
