@@ -5,3 +5,4 @@ sqlalchemy
 psycopg2
 nose
 python-dateutil
+docopt
