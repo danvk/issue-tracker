@@ -1,4 +1,4 @@
 *.db
 *.pyc
 .github-token
-issue-tracker-backfill
+issue-tracker-backfill*

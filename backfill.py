@@ -12,9 +12,6 @@ from datetime import datetime, timedelta
 import github
 import tracker
 
-OWNER = 'danvk'
-REPO = 'dygraphs'
-
 CACHE_DIR = 'issue-tracker-backfill'
 
 
@@ -142,14 +139,33 @@ def all_dates(start_str, last_str=None):
     return dates
 
 
+def summarize_rate_limit(g):
+    sys.stderr.write("Oh no, you've run out of GitHub API quota!\n")
+    sys.stderr.write("Please wait for it to reset; your backfill will resume where it left off.\n")
+    rate = g.get_rate_limit().rate
+
+    if rate.remaining == 0:
+        sys.stderr.write('Your quota will reset in %s\n' % (rate.reset - datetime.utcnow()))
+
+    sys.stderr.write('\n')
+
+
 if __name__ == '__main__':
+    owner, repo = sys.argv[1:]
+    CACHE_DIR += '-%s-%s' % (owner, repo)
+
     if not os.path.exists(CACHE_DIR):
         os.mkdir(CACHE_DIR)
     g = tracker.get_github()
 
-    repo = g.get_user(OWNER).get_repo(REPO)
+    try:
+        repo = g.get_user(owner).get_repo(repo)
+        issues = fetch_all_issues(repo)
+    except github.GithubException as e:
+        if e.status == 403 and 'rate limit' in e.data['message']:
+            summarize_rate_limit(g)
+            raise e
 
-    issues = fetch_all_issues(repo)
     # issues = fetch_all_issues_from_cache()
     sys.stderr.write('Loaded %d issues\n' % len(issues))
 
@@ -181,6 +197,14 @@ if __name__ == '__main__':
     ] + [{'by_label': {label: by_label[label]}} for label in labels]
 
     for i, obj in enumerate(objs):
-        json.dump(obj, open('backfill%04d.json' % i, 'w'))
+        json.dump(obj, open('%s/backfill%04d.json' % (CACHE_DIR, i), 'w'))
 
-    # for file in backfill*.json; do echo $file; curl --data @$file -H "Content-Type: application/json" http://localhost:5000/danvk/dygraphs/backfill; done
+    print '''
+Success!
+
+Now run:
+
+    for file in %s/backfill*.json; do echo $file; curl --data @$file -H "Content-Type: application/json" http://github-issue-tracker.herokuapp.com/%s/%s/backfill; done
+
+''' % (CACHE_DIR, owner, repo)
+
