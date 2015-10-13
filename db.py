@@ -12,7 +12,8 @@ import os
 
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///issue-tracker')
-engine = create_engine(DATABASE_URL, echo=True)
+#engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 
 STARS_LABEL = '__STARS'
