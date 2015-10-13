@@ -2,14 +2,11 @@
 '''This is the Heroku scheduler task.'''
 
 import app
+import db
 
-REPOS = [
-    'danvk/dygraphs',
-    'hammerlab/cycledash',
-    'hammerlab/pileup.js'
-]
 
 if __name__ == '__main__':
-    for owner_repo in REPOS:
-        owner, repo = owner_repo.split('/')
+    for tracked_repo in db.tracked_repos():
+        owner = tracked_repo.owner
+        repo = tracked_repo.repo
         app.observe_and_add(owner, repo)

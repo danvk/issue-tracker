@@ -22,8 +22,8 @@ def fetch_full_issue(issue):
     print 'Fetching issue %d...' % issue.number
     issue_json = issue.raw_data
     issue_json['events'] = [event.raw_data for event in issue.get_events()]
-    for event in issue_json:
-        del issue_json['events']['issue']
+    for event in issue_json['events']:
+        del event['issue']
     return issue_json
 
 
@@ -149,8 +149,8 @@ if __name__ == '__main__':
 
     repo = g.get_user(OWNER).get_repo(REPO)
 
-    # issues = fetch_all_issues(repo)
-    issues = fetch_all_issues_from_cache()
+    issues = fetch_all_issues(repo)
+    # issues = fetch_all_issues_from_cache()
     sys.stderr.write('Loaded %d issues\n' % len(issues))
 
     all_events = flatten((issue_events(issue) for issue in issues))
@@ -164,11 +164,22 @@ if __name__ == '__main__':
     labels = label_to_deltas.keys()
 
     label_to_count = {label: 0 for label in labels}
-    print '\t'.join(['Date'] + [x if x else 'Unlabeled' for x in labels]).encode('utf8')
     for date in dates:
         for label in labels:
             label_to_count[label] += label_to_deltas[label][date]
-        print '\t'.join([date] + [str(label_to_count[label]) for label in labels])
+
+    open_issues = label_to_deltas[None]
+    del label_to_deltas[None]
+
+    obj = {
+        'owner': OWNER,
+        'repo': REPO,
+        'open_issues': label_to_deltas[None],
+        # TODO: open_pulls
+        # TODO: stargazers; see https://github.com/PyGithub/PyGithub/issues/345
+        'by_label': label_to_deltas
+    }
+    print json.dump(obj, indent=2)
 
 
     # Possible events:

@@ -39,6 +39,9 @@ def hello():
 
 @app.route('/<owner>/<repo>')
 def stats(owner, repo):
+    if not db.is_repo_tracked(owner, repo):
+        return render_template('new_repo.html', owner=owner, repo=repo)
+
     stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
     stargazers = format_date_column(stargazers)
     open_issues = format_date_column(open_issues)

@@ -73,6 +73,17 @@ def get_repo(session, owner, repo):
     return (session.query(Repos).filter(Repos.owner == owner).filter(Repos.repo == repo)).one()
 
 
+def is_repo_tracked(owner, repo):
+    session = Session()
+    count = (session.query(Repos).filter(Repos.owner == owner).filter(Repos.repo == repo)).count()
+    return count > 0
+
+
+def tracked_repos():
+    session = Session()
+    return session.query(Repos)
+
+
 def get_stats_series(owner, repo):
     session = Session()
     repo = get_repo(session, owner, repo)
