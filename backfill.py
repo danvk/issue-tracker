@@ -3,7 +3,7 @@
 """Backfill counts for the GitHub Issue Tracker.
 
 Usage:
-  backfill.py <user> <repo> [--all | --issues | --pulls | --stars | --labels ]
+  backfill.py <user> <repo> [--labels-map=map.json] [--all | --issues | --pulls | --stars | --labels ]
 
 Options:
   -h --help    Show this screen.
@@ -13,6 +13,10 @@ Options:
   --pulls      Backfill only open pull requests.
   --stars      Backfill only stargazer counts.
   --labels     Backfill only per-label open issue counts.
+  --labels-map Path to a JSON file containing an object mapping old labels to
+               new labels. This is helpful (and possibly mandatory) when
+               backfilling labels which have been renamed. The backfiller will
+               warn on issues where it encounters this.
 """
 
 import glob
@@ -32,10 +36,12 @@ CACHE_DIR = 'issue-tracker-backfill'
 
 # GitHub doesn't track label renames as events in the issue.
 # If you've renamed labels, you need to let the backfiller know.
-# For example, if you renamed 'test' to 'tests', use this:
-# LABEL_RENAMES = {
-#     'test': 'tests'
+# For example, if you renamed 'test' to 'tests', put this in map.json:
+# {
+#   'test': 'tests'
 # }
+# 
+# and run backfill.py with `--labels-map map.json`.
 
 LABEL_RENAMES = {}
 
@@ -248,6 +254,10 @@ if __name__ == '__main__':
     arguments = docopt(__doc__, version='Backfiller 0.1')
     owner = arguments['<user>']
     repo_name = arguments['<repo>']
+
+    if arguments['--labels-map']:
+        LABEL_RENAMES = json.load(open(arguments['--labels-map']))
+        print 'Using label mapping:\n%s\n' % json.dumps(LABEL_RENAMES, indent=2)
 
     CACHE_DIR += '-%s-%s' % (owner, repo_name)
 
