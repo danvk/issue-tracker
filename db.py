@@ -139,23 +139,41 @@ def store_backfill(owner, repo, backfill_data):
     - stars
     - open_issues
     - issues_by_label
+    - delete
 
-    Values are lists of ['YYYY-MM-DD', count] tuples.
+    Values are lists of ['YYYY-MM-DD', count] tuples. The changes in a single
+    request are atomic, but can be chunked into multiple requests to keep the
+    backfill from taking too long.
     '''
     session = Session()
 
     repo = get_repo(session, owner, repo)
 
-
-    def fill_for_label(label, data):
-        # Clear out old values
+    def delete_for_label(label):
         session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).filter(CountsByLabel.label == label).delete()
 
+    def fill_for_label(label, data):
         session.add_all([CountsByLabel(repo_id=repo.id,
                                        label=label,
                                        time=dateutil.parser.parse(row[0]),
                                        count=int(row[1])) for row in data])
 
+
+    if 'delete' in backfill_data:
+        t = backfill_data['delete']
+        if t == 'open_issues':
+            delete_for_label(ALL_ISSUES_LABEL)
+        elif t == 'stargazers':
+            delete_for_label(STARS_LABEL)
+        elif t == 'open_pulls':
+            delete_for_label(PULL_REQUESTS_LABEL)
+        elif t == 'by_label':
+            (session.query(CountsByLabel)
+                    .filter(CountsByLabel.repo_id == repo.id)
+                    .filter(CountsByLabel.label != ALL_ISSUES_LABEL,
+                            CountsByLabel.label != STARS_LABEL,
+                            CountsByLabel.label != PULL_REQUESTS_LABEL)
+                    .delete())
 
     if 'open_issues' in backfill_data:
         fill_for_label(ALL_ISSUES_LABEL, backfill_data['open_issues'])
@@ -167,7 +185,6 @@ def store_backfill(owner, repo, backfill_data):
         fill_for_label(PULL_REQUESTS_LABEL, backfill_data['open_pulls'])
 
     if 'by_label' in backfill_data:
-        session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).filter(CountsByLabel.label != ALL_ISSUES_LABEL, CountsByLabel.label != STARS_LABEL, CountsByLabel.label != PULL_REQUESTS_LABEL).delete()
 
         for label, data in backfill_data['by_label'].iteritems():
             session.add_all([CountsByLabel(repo_id=repo.id,

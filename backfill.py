@@ -173,26 +173,14 @@ if __name__ == '__main__':
     open_issues = by_label[None]
     del by_label[None]
 
-    obj = {
-        'owner': OWNER,
-        'repo': REPO,
-        'open_issues': open_issues,
-        # TODO: open_pulls
-        # TODO: stargazers; see https://github.com/PyGithub/PyGithub/issues/345
-        'by_label': by_label
-    }
-    print json.dumps(obj, indent=2)
+    # Chunk into reasonably-sized requests
+    objs = [
+        {'delete': 'open_issues'},
+        {'open_issues': open_issues},
+        {'delete': 'by_label'}
+    ] + [{'by_label': {label: by_label[label]}} for label in labels]
 
+    for i, obj in enumerate(objs):
+        json.dump(obj, open('backfill%04d.json' % i, 'w'))
 
-    # Possible events:
-    # ([u'referenced', u'subscribed', u'unlabeled', u'reopened', u'assigned', u'renamed', u'labeled', u'unassigned', u'milestoned', u'head_ref_deleted', u'closed', u'mentioned', u'head_ref_restored', u'demilestoned', u'merged'])
-    #
-    # for issue in issues:
-    #     labels = set(label['name'] for label in issue['labels'])
-    #     # this is tricky since the current state is the end state.
-    #     # we need to play the events in reverse
-    #     for event in issue['events']:
-    #         events.add(event['event'])
-    #
-    # print events
-
+    # for file in backfill*.json; do echo $file; curl --data @$file -H "Content-Type: application/json" http://localhost:5000/danvk/dygraphs/backfill; done
