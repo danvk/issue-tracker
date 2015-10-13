@@ -14,6 +14,14 @@ import tracker
 
 CACHE_DIR = 'issue-tracker-backfill'
 
+# GitHub doesn't track label renames as events in the issue.
+# If you've renamed labels, you need to let the backfiller know.
+# For example, if you renamed 'test' to 'tests', use this:
+# LABEL_RENAMES = {
+#     'test': 'tests'
+# }
+
+LABEL_RENAMES = {}
 
 def fetch_full_issue(issue):
     print 'Fetching issue %d...' % issue.number
@@ -92,11 +100,13 @@ def issue_events(issue):
         time = event['created_at']
         if t == 'labeled':
             label = event['label']['name']
+            label = LABEL_RENAMES.get(label, label)
             labels.add(label)
             if is_open:
                 events.append((time, label, +1))
         elif t == 'unlabeled':
             label = event['label']['name']
+            label = LABEL_RENAMES.get(label, label)
             labels.remove(label)
             if is_open:
                 events.append((time, label, -1))
@@ -108,6 +118,13 @@ def issue_events(issue):
             is_open = True
             for label in [None] + list(labels):
                 events.append((time, label, +1))
+
+    github_labels = {label['name'] for label in issue['labels']}
+    if labels != github_labels:
+        print 'Label mismatch for issue %d' % issue['number']
+        print '  Computed %s' % labels
+        print '  GitHub says %s' % github_labels
+        print 'You may need to fill out the LABEL_RENAMES variable\n'
     return events
 
 
@@ -151,15 +168,15 @@ def summarize_rate_limit(g):
 
 
 if __name__ == '__main__':
-    owner, repo = sys.argv[1:]
-    CACHE_DIR += '-%s-%s' % (owner, repo)
+    owner, repo_name = sys.argv[1:]
+    CACHE_DIR += '-%s-%s' % (owner, repo_name)
 
     if not os.path.exists(CACHE_DIR):
         os.mkdir(CACHE_DIR)
     g = tracker.get_github()
 
     try:
-        repo = g.get_user(owner).get_repo(repo)
+        repo = g.get_user(owner).get_repo(repo_name)
         issues = fetch_all_issues(repo)
     except github.GithubException as e:
         if e.status == 403 and 'rate limit' in e.data['message']:
@@ -206,5 +223,5 @@ Now run:
 
     for file in %s/backfill*.json; do echo $file; curl --data @$file -H "Content-Type: application/json" http://github-issue-tracker.herokuapp.com/%s/%s/backfill; done
 
-''' % (CACHE_DIR, owner, repo)
+''' % (CACHE_DIR, owner, repo_name)
 
