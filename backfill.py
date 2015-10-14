@@ -46,6 +46,48 @@ CACHE_DIR = 'issue-tracker-backfill'
 
 LABEL_RENAMES = {}
 
+
+# Workaround for https://github.com/PyGithub/PyGithub/issues/345
+class Stargazer(github.GithubObject.NonCompletableGithubObject):
+    @property
+    def starred_at(self):
+        """
+        :type: datetime.datetime
+        """
+        return self._starred_at.value
+
+    @property
+    def user(self):
+        """
+        :type: :class:`github.NamedUser`
+        """
+        return self._user.value
+
+    def _initAttributes(self):
+        self._starred_at = github.GithubObject.NotSet
+        self._user = github.GithubObject.NotSet
+        self._url = github.GithubObject.NotSet
+
+    def _useAttributes(self, attributes):
+        if 'starred_at' in attributes:
+            self._starred_at = self._makeDatetimeAttribute(attributes['starred_at'])
+        if 'user' in attributes:
+            self._user = self._makeClassAttribute(github.NamedUser.NamedUser, attributes['user'])
+
+
+def get_stargazers(repo):
+    return github.PaginatedList.PaginatedList(
+        Stargazer,
+        repo._requester,
+        repo.url + "/stargazers",
+        None,
+        # XXX: mainline pygithub doesn't support this:
+        headers={
+            'Accept': 'application/vnd.github.v3.star+json'
+        }
+    )
+
+
 def fetch_full_issue(issue):
     """Fills out the events field for an Issue or Pull Request."""
     print 'Fetching issue %d...' % issue.number
@@ -216,11 +258,13 @@ def backfill_core(issues, backfill_labels=False):
                          for issue in issues))
     first_date = find_first_date(all_events)
     dates = all_dates(first_date)
+    last_date = max(dates)
 
     label_to_deltas = defaultdict(lambda: {date: 0 for date in dates})
     for time_str, label, delta in all_events:
         yyyy_mm_dd = next_date(time_str)
-        label_to_deltas[label][yyyy_mm_dd] += delta
+        if yyyy_mm_dd < last_date:
+            label_to_deltas[label][yyyy_mm_dd] += delta
     labels = label_to_deltas.keys()
 
     label_to_count = {label: 0 for label in labels}
@@ -249,6 +293,24 @@ def backfill_pulls(g, owner, repo_name):
     pulls = fetch_all_pulls(repo)
     sys.stderr.write('Loaded %d pull requests\n' % len(pulls))
     return backfill_core(pulls, backfill_labels=False)[0]
+
+
+def backfill_stars(g, owner, repo_name):
+    repo = g.get_user(owner).get_repo(repo_name)
+    deltas = defaultdict(int)
+    for stargazer in get_stargazers(repo):
+        dt = stargazer.starred_at
+        d = (dt.date() + timedelta(days=1)).strftime('%Y-%m-%d')
+        deltas[d] += 1
+    first_date = min(deltas.keys())
+    dates = all_dates(first_date)
+    count = 0
+    counts = []
+    for date in dates:
+        count += deltas[date]
+        counts.append((date, count))
+
+    return counts
 
 
 if __name__ == '__main__':
@@ -287,8 +349,7 @@ if __name__ == '__main__':
         if do_issues or do_labels:
             open_issues, by_label = backfill_issues(g, owner, repo_name, backfill_labels=(do_all or do_labels))
         if do_stars:
-            sys.stderr.write('\nStargazer backfilling is not implemented yet.\n\n')
-            pass
+            stargazers = backfill_stars(g, owner, repo_name)
         if do_pulls:
             open_pulls = backfill_pulls(g, owner, repo_name)
 
@@ -313,7 +374,10 @@ if __name__ == '__main__':
             {'open_pulls': open_pulls}
         ])
     if do_stars:
-        pass
+        objs.extend([
+            {'delete': 'stargazers'},
+            {'stargazers': stargazers}
+        ])
 
     url = 'http://%s/%s/%s/backfill' % (host, owner, repo_name)
     print 'Successfully generated backfill data.'

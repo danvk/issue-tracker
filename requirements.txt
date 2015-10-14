@@ -1,4 +1,3 @@
-pygithub
 flask
 gunicorn
 sqlalchemy
@@ -8,3 +7,4 @@ python-dateutil
 docopt
 mysql
 requests
+-e 'git+https://github.com/danvk/PyGithub.git@paginated-headers#egg=pygithub'

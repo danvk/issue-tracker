@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Sequence, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship, backref
@@ -9,6 +9,7 @@ import dateutil.parser
 from collections import defaultdict
 from datetime import datetime
 import os
+import time
 
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgres:///issue-tracker')
@@ -89,7 +90,12 @@ def get_stats_series(owner, repo):
     session = Session()
     repo = get_repo(session, owner, repo)
 
-    counts = session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).order_by(CountsByLabel.label, CountsByLabel.time)
+    counts = (session.query(CountsByLabel)
+        .filter(CountsByLabel.repo_id == repo.id)
+        .filter(or_(CountsByLabel.label == ALL_ISSUES_LABEL,
+                    CountsByLabel.label == PULL_REQUESTS_LABEL,
+                    CountsByLabel.label == STARS_LABEL))
+        .order_by(CountsByLabel.label, CountsByLabel.time))
 
     open_issues = []
     stargazers = []
@@ -153,11 +159,16 @@ def store_backfill(owner, repo, backfill_data):
         session.query(CountsByLabel).filter(CountsByLabel.repo_id == repo.id).filter(CountsByLabel.label == label).delete()
 
     def fill_for_label(label, data):
-        session.add_all([CountsByLabel(repo_id=repo.id,
-                                       label=label,
-                                       time=dateutil.parser.parse(row[0]),
-                                       count=int(row[1])) for row in data])
-
+        start_secs = time.time()
+        session.execute(CountsByLabel.__table__.insert(), [
+            {
+                'repo_id': repo.id,
+                'label': label,
+                'time': dateutil.parser.parse(row[0]),
+                'count': int(row[1])
+            } for row in data])
+        stop_secs = time.time()
+        print 'Inserted %d rows in %f secs' % (len(data), stop_secs - start_secs)
 
     if 'delete' in backfill_data:
         t = backfill_data['delete']
@@ -185,12 +196,8 @@ def store_backfill(owner, repo, backfill_data):
         fill_for_label(PULL_REQUESTS_LABEL, backfill_data['open_pulls'])
 
     if 'by_label' in backfill_data:
-
         for label, data in backfill_data['by_label'].iteritems():
-            session.add_all([CountsByLabel(repo_id=repo.id,
-                                           label=label,
-                                           time=dateutil.parser.parse(row[0]),
-                                           count=int(row[1])) for row in data])
+            fill_for_label(label, data)
 
     session.commit()
 
