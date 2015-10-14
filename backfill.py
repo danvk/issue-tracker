@@ -188,9 +188,12 @@ def issue_events(issue, track_labels=True):
         elif t == 'unlabeled' and track_labels:
             label = event['label']['name']
             label = LABEL_RENAMES.get(label, label)
-            labels.remove(label)
-            if is_open:
-                events.append((time, label, -1))
+            try:
+                labels.remove(label)
+                if is_open:
+                    events.append((time, label, -1))
+            except KeyError as e:
+                sys.stderr.write('Unable to drop label %s on issue %d.\nTry passing in a --labels-map, or run without --labels\n' % (label, issue['number']))
         elif t == 'closed':
             is_open = False
             events.append((time, None, -1))
