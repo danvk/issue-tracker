@@ -256,6 +256,8 @@ def backfill_core(issues, backfill_labels=False):
     '''Shared backfilling logic between issues and pull requests.'''
     all_events = flatten((issue_events(issue, track_labels=backfill_labels)
                          for issue in issues))
+    if len(all_events) == 0:
+        return [], {}
     first_date = find_first_date(all_events)
     dates = all_dates(first_date)
     last_date = max(dates)
@@ -302,6 +304,9 @@ def backfill_stars(g, owner, repo_name):
         dt = stargazer.starred_at
         d = (dt.date() + timedelta(days=1)).strftime('%Y-%m-%d')
         deltas[d] += 1
+    if len(deltas) == 0:
+        return []
+
     first_date = min(deltas.keys())
     dates = all_dates(first_date)
     count = 0
