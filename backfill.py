@@ -3,12 +3,11 @@
 """Backfill counts for the GitHub Issue Tracker.
 
 Usage:
-  backfill.py <user> <repo> [--labels-map=map.json] [--all | --issues | --pulls | --stars | --labels ]
+  backfill.py <user> <repo> [--labels-map=map.json] [--issues | --pulls | --stars | --labels ]
 
 Options:
   -h --help    Show this screen.
   --version    Show version.
-  --all        Backfill all counts. [default: true]
   --issues     Backfill only open issues.
   --pulls      Backfill only open pull requests.
   --stars      Backfill only stargazer counts.
@@ -270,11 +269,15 @@ if __name__ == '__main__':
     by_label = {}
     stargazers = []
 
-    do_all = arguments['--all']
-    do_issues = arguments['--issues'] or do_all
-    do_labels = arguments['--labels'] or do_all
-    do_stars = arguments['--stars'] or do_all
-    do_pulls = arguments['--pulls'] or do_all
+    do_issues = arguments['--issues']
+    do_labels = arguments['--labels']
+    do_stars = arguments['--stars']
+    do_pulls = arguments['--pulls']
+    do_all = not (do_issues or do_labels or do_stars or do_pulls)
+    do_issues = do_issues or do_all
+    do_labels = do_labels or do_all
+    do_stars = do_stars or do_all
+    do_pulls = do_pulls or do_all
 
     try:
         if do_issues or do_labels:
