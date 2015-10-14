@@ -3,11 +3,12 @@
 """Backfill counts for the GitHub Issue Tracker.
 
 Usage:
-  backfill.py <user> <repo> [--labels-map=map.json] [--issues | --pulls | --stars | --labels ]
+  backfill.py <user> <repo> [--host HOST] [--labels-map=map.json] [--issues | --pulls | --stars | --labels ]
 
 Options:
   -h --help    Show this screen.
   --version    Show version.
+  --host HOST  GitHub Issue Tracker to post to [default: github-issue-tracker.herokuapp.com]
   --issues     Backfill only open issues.
   --pulls      Backfill only open pull requests.
   --stars      Backfill only stargazer counts.
@@ -27,8 +28,9 @@ from datetime import datetime, timedelta
 
 import dateutil.parser
 from docopt import docopt
-
+import requests
 import github
+
 import tracker
 
 CACHE_DIR = 'issue-tracker-backfill'
@@ -258,6 +260,8 @@ if __name__ == '__main__':
         LABEL_RENAMES = json.load(open(arguments['--labels-map']))
         print 'Using label mapping:\n%s\n' % json.dumps(LABEL_RENAMES, indent=2)
 
+    host = arguments['--host']
+
     CACHE_DIR += '-%s-%s' % (owner, repo_name)
 
     if not os.path.exists(CACHE_DIR):
@@ -302,7 +306,7 @@ if __name__ == '__main__':
         ])
     if do_labels:
         objs.append({'delete': 'by_label'})
-        objs.extend([{'by_label': {label: by_label[label]}} for label in labels])
+        objs.extend([{'by_label': {label: by_label[label]}} for label in by_label.iterkeys()])
     if do_pulls:
         objs.extend([
             {'delete': 'open_pulls'},
@@ -311,17 +315,14 @@ if __name__ == '__main__':
     if do_stars:
         pass
 
-    for path in glob.glob('%s/backfill????.json' % CACHE_DIR):
-        os.remove(path)
+    url = 'http://%s/%s/%s/backfill' % (host, owner, repo_name)
+    print 'Successfully generated backfill data.'
+    print 'POSTing to %s...' % url
+
     for i, obj in enumerate(objs):
-        json.dump(obj, open('%s/backfill%04d.json' % (CACHE_DIR, i), 'w'))
+        print 'Issuing request %d... ' % i,
+        r = requests.post(url, json=obj)
+        print r.text
+        r.raise_for_status()
 
-    print '''
-Success!
-
-Now run:
-
-    for file in %s/backfill*.json; do echo $file; curl --data @$file -H "Content-Type: application/json" http://github-issue-tracker.herokuapp.com/%s/%s/backfill; done
-
-''' % (CACHE_DIR, owner, repo_name)
-
+    print 'Success! Now visit http://%s/%s/%s' % (host, owner, repo_name)

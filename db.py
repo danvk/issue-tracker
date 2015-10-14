@@ -26,9 +26,9 @@ Base = declarative_base()
 class Repos(Base):
     __tablename__ = 'repos'
     id = Column(Integer, primary_key=True, nullable=False)
-    owner = Column(String)
-    repo = Column(String)
-    token = Column(String)
+    owner = Column(String(100))
+    repo = Column(String(100))
+    token = Column(String(100))
     add_time = Column(DateTime, default=datetime.utcnow)
 
 
@@ -37,7 +37,7 @@ class CountsByLabel(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     repo_id = Column(Integer, ForeignKey('repos.id'))
     repo = relationship("Repos")
-    label = Column(String)  # can also be STARS_LABEL, ALL_ISSUES_LABEL or PULL_REQUESTS_LABEL
+    label = Column(String(50))  # can also be STARS_LABEL, ALL_ISSUES_LABEL or PULL_REQUESTS_LABEL
     time = Column(DateTime, default=datetime.utcnow)
     count = Column(Integer)
 
