@@ -4,7 +4,7 @@ from collections import defaultdict
 import json
 import os
 
-from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
 from flask.ext.github import GitHub
 import requests
 
@@ -56,7 +56,7 @@ def stats(owner, repo):
     login = g.user.login if g.user else None
 
     if not db.is_repo_tracked(owner, repo):
-        return render_template('new_repo.html', owner=owner, repo=repo)
+        return render_template('new_repo.html', login=login, owner=owner, repo=repo)
 
     stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
     stargazers = format_date_column(stargazers)
@@ -112,14 +112,28 @@ def backfill(owner, repo):
 
 @app.route('/<owner>/<repo>/add', methods=['POST'])
 def add_repo(owner, repo):
-    db.add_repo(owner, repo, '')
-    return 'OK'
+    if not g.user:
+        flash('You must be logged in to add a repo!')
+        return stats(owner, repo)
+    if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
+        flash('You must have push rights to a repo to track it.')
+        return stats(owner, repo)
+    db.add_repo(owner, repo, g.user.token)
+    flash('This repo is now being tracked')
+    return redirect(url_for('stats', owner=owner, repo=repo))
 
 
 @app.route('/<owner>/<repo>/update', methods=['POST'])
-def update():
+def update(owner, repo):
+    if not g.user:
+        flash('You must be logged in to force an update!')
+        return stats(owner, repo)
+    if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
+        flash('You must have push rights to a repo to update its charts.')
+        return stats(owner, repo)
     observe_and_add(owner, repo)
-    return 'OK'
+    flash('A new data point has been added to all charts.')
+    return redirect(url_for('stats', owner=owner, repo=repo))
 
 
 # OAuth stuff

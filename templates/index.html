@@ -1,52 +1,15 @@
-<!doctype html>
-<head>
-<title>GitHub Issue Tracker - {{owner}}/{{repo}}</title>
-<style>
-.chart {
-  width: 800px;
-  height: 300px;
-}
-table td:first-child, table th:first-child {
-  text-align: right;
-}
-table td:nth-child(2), table th:nth-child(2) {
-  text-align: left;
-}
-.dygraph-legend {
-  left: 70px !important;
-  top: 30px !important;
-  width: auto !important;
-  min-width: 120px;
-  padding: 4px;
-  border: 1px solid #aaa;
-}
-#by-label-legend, #labels {
-  display: inline-block;
-  vertical-align: top;
-}
-#by-label-legend > span, #by-label-legend b {
-  font-weight: normal !important;
-}
-#by-label-legend > span.highlight, #by-label-legend > span.highlight b {
-  font-weight: bold !important;
-}
-      
-</style>
-</head>
-<body>
+{% extends "layout.html" %}
+{% block title %}{{owner}}/{{repo}}{% endblock %}
+{% block head %}
+  {{ super() }}
+  <!-- ... -->
+{% endblock %}
 
+{% block content %}
   <h2>Issue History for {{owner}}/{{repo}}</h2>
 
 <p>
 This service tracks GitHub issues for a repo over time.
-</p>
-
-<p class="login">
-{% if login %}
-{{login}} | <a href="/logout">Log Out</a>
-{% else %}
-<a href="/login">Log In</a>
-{% endif %}
 </p>
 
 <div id="issues" class="chart"></div>
@@ -72,8 +35,9 @@ This service tracks GitHub issues for a repo over time.
 <form method="post" action="/{{owner}}/{{repo}}/update">
   <input type="submit" value="Update Now" />
 </form>
+{% endblock %}
 
-</body>
+{% block postbody %}
 <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>
 
 <script>
@@ -152,3 +116,4 @@ var g_labels = new Dygraph('labels', issues_by_label.slice(1),
     }));
 
 </script>
+{% endblock %}

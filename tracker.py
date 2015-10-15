@@ -59,5 +59,11 @@ def user_for_token(token):
     return g.get_user().login
 
 
+def can_user_push_to_repo(token, owner, repo_name):
+    g = Github(token)
+    repo = g.get_user(owner).get_repo(repo_name)
+    return repo.permissions.push
+
+
 if __name__ == '__main__':
     print fetch_stats_from_github(OWNER, REPO)

@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    {% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}{% endblock %} - GitHub Issue Tracker</title>
+    {% endblock %}
+  </head>
+  <body>
+
+    <div id="header">
+      <div class="login">
+      {% if login %}
+      {{login}} | <a href="/logout">Log Out</a>
+      {% else %}
+      <a href="/login">Log In</a>
+      {% endif %}
+      </div>
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <ul class=flashes>
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <div id="content">{% block content %}{% endblock %}</div>
+    <div id="footer">
+      {% block footer %}
+      <p>&copy; Copyright 2015 by <a href="http://danvk.org/">danvk</a>.</p>
+      {% endblock %}
+    </div>
+  </body>
+  {% block postbody %}{% endblock %}
+</html>

@@ -1,0 +1,28 @@
+.chart {
+  width: 800px;
+  height: 300px;
+}
+table td:first-child, table th:first-child {
+  text-align: right;
+}
+table td:nth-child(2), table th:nth-child(2) {
+  text-align: left;
+}
+.dygraph-legend {
+  left: 70px !important;
+  top: 30px !important;
+  width: auto !important;
+  min-width: 120px;
+  padding: 4px;
+  border: 1px solid #aaa;
+}
+#by-label-legend, #labels {
+  display: inline-block;
+  vertical-align: top;
+}
+#by-label-legend > span, #by-label-legend b {
+  font-weight: normal !important;
+}
+#by-label-legend > span.highlight, #by-label-legend > span.highlight b {
+  font-weight: bold !important;
+}

@@ -1,11 +1,10 @@
-<!doctype html>
-<head>
-</head>
-<body>
-  <h2>{{owner}}/{{repo}}</h2>
-  <p>We're not tracking {{owner}}/{{repo}}.</p>
-  <p>If we should, click this button:</p>
-  <form action="/{{owner}}/{{repo}}/add" method="POST">
-    <input type="submit" value="Start Tracking">
-  </form>
-</body>
+{% extends "layout.html" %}
+{% block title %}{{owner}}/{{repo}}{% endblock %}
+{% block content %}
+<h2>{{owner}}/{{repo}}</h2>
+<p>We're not tracking {{owner}}/{{repo}}.</p>
+<p>If we should, click this button:</p>
+<form action="/{{owner}}/{{repo}}/add" method="POST">
+  <input type="submit" value="Start Tracking">
+</form>
+{% endblock %}
