@@ -54,5 +54,10 @@ def fetch_stats_from_github(owner, repo):
                      label_to_count=label_to_count)
 
 
+def user_for_token(token):
+    g = Github(token)
+    return g.get_user().login
+
+
 if __name__ == '__main__':
     print fetch_stats_from_github(OWNER, REPO)

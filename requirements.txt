@@ -8,3 +8,4 @@ docopt
 mysql
 requests
 -e 'git+https://github.com/danvk/PyGithub.git@paginated-headers#egg=pygithub'
+GitHub-Flask

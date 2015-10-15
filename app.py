@@ -1,14 +1,27 @@
 #!/usr/bin/env python
 
 from collections import defaultdict
+import json
+import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from flask.ext.github import GitHub
+import requests
 
 import db
 import tracker
 
 OWNER = 'danvk'
 REPO = 'dygraphs'
+
+app = Flask(__name__)
+
+DEBUG = os.environ.get('DEBUG')
+app.secret_key = os.environ.get('SECRET_KEY')
+app.config['GITHUB_CLIENT_ID'] = os.environ.get('CLIENT_ID')
+app.config['GITHUB_CLIENT_SECRET'] = os.environ.get('CLIENT_SECRET')
+
+github = GitHub(app)
 
 
 def format_date_column(series):
@@ -31,14 +44,17 @@ def observe_and_add(owner, repo):
     db.store_result(owner, repo, stats)
 
 
-app = Flask(__name__)
+
+
 @app.route('/')
-def hello():
+def index():
     return stats(OWNER, REPO)
 
 
 @app.route('/<owner>/<repo>')
 def stats(owner, repo):
+    login = g.user.login if g.user else None
+
     if not db.is_repo_tracked(owner, repo):
         return render_template('new_repo.html', owner=owner, repo=repo)
 
@@ -51,6 +67,7 @@ def stats(owner, repo):
     current_label_counts = get_current_label_counts(by_label)
 
     return render_template('index.html',
+            login=login,
             owner=owner,
             repo=repo,
             stargazers=stargazers,
@@ -105,5 +122,51 @@ def update():
     return 'OK'
 
 
+# OAuth stuff
+
+
+@app.before_request
+def before_request():
+    g.user = None
+    if 'user_id' in session:
+        g.user = db.get_user(session['user_id'])
+
+
+@github.access_token_getter
+def token_getter():
+    user = g.user
+    if user is not None:
+        return user.token
+
+
+@app.route('/login')
+def login():
+    if session.get('user_id', None) is None:
+        return github.authorize()
+    else:
+        return 'Already logged in'
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('index'))
+
+
+@app.route('/callback')
+@github.authorized_handler
+def authorized(oauth_token):
+    next_url = request.args.get('next') or url_for('index')
+    if oauth_token is None:
+        flash("Authorization failed.")
+        return redirect(next_url)
+
+    login = tracker.user_for_token(oauth_token)
+    user_id = db.add_user(login, oauth_token)
+    session['user_id'] = user_id
+    return redirect(next_url)
+
+
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', debug=DEBUG)

@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, or_
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Sequence, DateTime, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship, backref
+from sqlalchemy.orm.exc import NoResultFound
 import dateutil.parser
 
 from collections import defaultdict
@@ -23,6 +24,15 @@ PULL_REQUESTS_LABEL = '__PRS'
 
 
 Base = declarative_base()
+
+
+class Users(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, nullable=False)
+    login = Column(String(100))
+    token = Column(String(100))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class Repos(Base):
     __tablename__ = 'repos'
@@ -207,3 +217,19 @@ def add_repo(owner, repo, token):
     session = Session()
     session.add(Repos(owner=owner, repo=repo, token=token))
     session.commit()
+
+
+def add_user(login, token):
+    session = Session()
+    try:
+        user = session.query(Users).filter(Users.login==login).one()
+    except NoResultFound:
+        user = Users(login=login, token=token)
+    user = session.merge(user)
+    session.commit()
+    return user.id
+
+
+def get_user(user_id):
+    session = Session()
+    return session.query(Users).get(user_id)

@@ -41,6 +41,14 @@ table td:nth-child(2), table th:nth-child(2) {
 This service tracks GitHub issues for a repo over time.
 </p>
 
+<p class="login">
+{% if login %}
+{{login}} | <a href="/logout">Log Out</a>
+{% else %}
+<a href="/login">Log In</a>
+{% endif %}
+</p>
+
 <div id="issues" class="chart"></div>
 <div id="pulls" class="chart"></div>
 <div id="stars" class="chart"></div>
