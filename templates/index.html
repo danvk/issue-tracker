@@ -16,104 +16,40 @@ This service tracks GitHub issues for a repo over time.
 <div id="pulls" class="chart"></div>
 <div id="stars" class="chart"></div>
 <div class="labels-chart-holder">
-  <div id="labels" class="chart"></div>
-  <div id="by-label-legend" class="legend"></div>
+  <p id="labels-loading-message">
+    Loading per-label counts. Stand by&hellip;
+  </p>
+  <div id="labels-charts" style="display: none">
+    <div id="labels" class="chart"></div>
+    <div id="by-label-legend" class="legend"></div>
 
-  <div id="current-labels">
-    <table>
-      <tr><th>Count</th><th>Label</th></tr>
-      {% for label_count in current_label_counts %}
-      <tr>
-        <td>{{label_count[1]}}</td>
-        <td><a href="https://github.com/{{owner}}/{{repo}}/labels/{{label_count[0]}}">{{label_count[0]}}</a></td>
-      </tr>
-      {% endfor %}
-    </table>
+    <div id="current-labels">
+      <table>
+        <tr><th>Count</th><th>Label</th></tr>
+      </table>
+    </div>
   </div>
 </div>
 
-<form method="post" action="/{{owner}}/{{repo}}/update">
+<form class="manual-update" method="post" action="/{{owner}}/{{repo}}/update">
+  <h2>Manual Update</h2>
+  <p>The issue charts update automatically every day. But if you really must, you can update them now by pressing this button:</p>
   <input type="submit" value="Update Now" />
 </form>
 {% endblock %}
 
 {% block postbody %}
 <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
 
 <script>
+var owner = {{owner|tojson}},
+    repo = {{repo|tojson}};
 var issues_by_day = {{open_issues|tojson}},
     pulls_by_day = {{open_pulls|tojson}},
-    stars_by_day = {{stargazers|tojson}},
-    issues_by_label = {{by_label|tojson}};
-
-function firstColumnToDate(row) { row[0] = new Date(row[0]); }
-
-issues_by_day.forEach(firstColumnToDate);
-pulls_by_day.forEach(firstColumnToDate);
-stars_by_day.forEach(firstColumnToDate);
-issues_by_label.forEach(function(row, i) {
-  if (i == 0) return;  // labels
-  return firstColumnToDate(row);
-});
-
-function extend(obj, new_attrs) {
-  var out = {};
-  for (var k in obj) {
-    out[k] = obj[k];
-  }
-  for (var k in new_attrs) {
-    out[k] = new_attrs[k];
-  }
-  return out;
-}
-
-function zeropad(x) { return (x < 10) ? '0' + x : x; }
-
-var BASE_CHART_OPTIONS = {
-  legend: 'always',
-  labelsSeparateLines: true,
-  includeZero: true,
-  gridLineWidth: 0.1,
-  axes: {
-    x: {
-      valueFormatter: function(millis) {
-        var d = new Date(millis);
-        return d.getFullYear() + '/' + zeropad(1 + d.getMonth()) + '/' + zeropad(d.getDate());
-      }
-    }
-  }
-};
-
-var g_stars = new Dygraph('stars', stars_by_day,
-    extend(BASE_CHART_OPTIONS, {
-      labels: ['Date', 'Stargazers'],
-      title: 'Stargazers',
-      fillGraph: true
-    }));
-
-var g_open_issues = new Dygraph('issues', issues_by_day,
-    extend(BASE_CHART_OPTIONS, {
-      labels: ['Date', 'Open Issues'],
-      title: 'Open Issues',
-      fillGraph: true
-    }));
-
-var g_pulls = new Dygraph('pulls', pulls_by_day,
-    extend(BASE_CHART_OPTIONS, {
-      labels: ['Date', 'Open Pull Requests'],
-      title: 'Open Pull Requests',
-      fillGraph: true
-    }));
-
-var g_labels = new Dygraph('labels', issues_by_label.slice(1),
-    extend(BASE_CHART_OPTIONS, {
-      labels: issues_by_label[0],
-      labelsDiv: 'by-label-legend',
-      title: 'Open Issues by Label',
-      highlightSeriesOpts: {
-        strokeWidth: 2
-      }
-    }));
-
+    stars_by_day = {{stargazers|tojson}};
 </script>
+
+<script src="/static/dashboard.js"></script>
 {% endblock %}

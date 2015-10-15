@@ -96,15 +96,21 @@ def tracked_repos():
     return session.query(Repos)
 
 
-def get_stats_series(owner, repo):
+def get_stats_series(owner, repo_name, include_labels=False):
     session = Session()
-    repo = get_repo(session, owner, repo)
+    repo = get_repo(session, owner, repo_name)
+
+    if include_labels:
+        clause = or_()
+    else:
+        clause = or_(CountsByLabel.label == ALL_ISSUES_LABEL,
+                     CountsByLabel.label == PULL_REQUESTS_LABEL,
+                     CountsByLabel.label == STARS_LABEL)
+
 
     counts = (session.query(CountsByLabel)
         .filter(CountsByLabel.repo_id == repo.id)
-        .filter(or_(CountsByLabel.label == ALL_ISSUES_LABEL,
-                    CountsByLabel.label == PULL_REQUESTS_LABEL,
-                    CountsByLabel.label == STARS_LABEL))
+        .filter(clause)
         .order_by(CountsByLabel.label, CountsByLabel.time))
 
     open_issues = []

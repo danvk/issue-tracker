@@ -58,13 +58,10 @@ def stats(owner, repo):
     if not db.is_repo_tracked(owner, repo):
         return render_template('new_repo.html', login=login, owner=owner, repo=repo)
 
-    stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
+    stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo, include_labels=False)
     stargazers = format_date_column(stargazers)
     open_issues = format_date_column(open_issues)
     open_pulls = format_date_column(open_pulls)
-    by_label = [by_label[0]] + format_date_column(by_label[1:])
-
-    current_label_counts = get_current_label_counts(by_label)
 
     return render_template('index.html',
             login=login,
@@ -72,27 +69,17 @@ def stats(owner, repo):
             repo=repo,
             stargazers=stargazers,
             open_issues=open_issues,
-            open_pulls=open_pulls,
-            by_label=by_label,
-            current_label_counts=current_label_counts)
+            open_pulls=open_pulls)
 
 
 @app.route('/<owner>/<repo>/json')
 def stats_json(owner, repo):
-    stargazers, open_issues, open_pulls, by_label = db.get_stats_series(owner, repo)
+    stargazers, open_issues, open_pulls, by_label = (
+        db.get_stats_series(owner, repo, include_labels=request.args.get('include_labels')))
     stargazers = format_date_column(stargazers)
     open_issues = format_date_column(open_issues)
     open_pulls = format_date_column(open_pulls)
     by_label = [by_label[0]] + format_date_column(by_label[1:])
-
-    by_label_dict = defaultdict(list)
-    for row in by_label[1:]:  # drop header row
-        for idx, col in enumerate(row):
-            if idx == 0: continue  # drop date column
-            label = by_label[0][idx]
-            if label == '(unlabeled)':
-                label = ''
-            by_label_dict[label].append((row[0], col))
 
     return jsonify({
         'owner': owner,
@@ -100,7 +87,7 @@ def stats_json(owner, repo):
         'stargazers': stargazers,
         'open_issues': open_issues,
         'open_pulls': open_pulls,
-        'by_label': by_label_dict
+        'by_label': by_label
     })
 
 
