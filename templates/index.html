@@ -6,16 +6,18 @@
 {% endblock %}
 
 {% block content %}
-  <h2>Issue History for {{owner}}/{{repo}}</h2>
-
-<p>
-This service tracks GitHub issues for a repo over time.
+<p class="lead">
+  This service tracks GitHub issues for a repo over time.
 </p>
 
+<h3>Open Issues</h3>
 <div id="issues" class="chart"></div>
+<h3>Open Pull Requests</h3>
 <div id="pulls" class="chart"></div>
+<h3>Stargazers</h3>
 <div id="stars" class="chart"></div>
 <div class="labels-chart-holder">
+  <h2>Label Statistics</h2>
   <p id="labels-loading-message">
     Loading per-label counts. Stand by&hellip;
   </p>
@@ -24,6 +26,7 @@ This service tracks GitHub issues for a repo over time.
     <div id="by-label-legend" class="legend"></div>
 
     <div id="current-labels">
+      <h3>Current Per-Label Counts</h3>
       <table>
         <tr><th>Count</th><th>Label</th></tr>
       </table>
@@ -40,8 +43,6 @@ This service tracks GitHub issues for a repo over time.
 
 {% block postbody %}
 <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.1/dygraph-combined.js"></script>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.7.0/underscore-min.js"></script>
 
 <script>
 var owner = {{owner|tojson}},

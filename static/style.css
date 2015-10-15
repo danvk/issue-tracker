@@ -1,5 +1,11 @@
+#login {
+  display: table;
+  float: right;
+}
+
 .chart {
-  width: 800px;
+  width: 100%;
+  max-width: 800px;
   height: 300px;
 }
 table td:first-child, table th:first-child {
@@ -25,4 +31,14 @@ table td:nth-child(2), table th:nth-child(2) {
 }
 #by-label-legend > span.highlight, #by-label-legend > span.highlight b {
   font-weight: bold !important;
+}
+#current-labels table td, #current-labels table th {
+  padding: 1px 5px;
+}
+
+footer {
+  padding-top: 50px;
+}
+.muted {
+  color: #777;
 }

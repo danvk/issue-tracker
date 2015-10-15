@@ -37,21 +37,18 @@ var BASE_CHART_OPTIONS = {
 var g_stars = new Dygraph('stars', stars_by_day,
     extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Stargazers'],
-      title: 'Stargazers',
       fillGraph: true
     }));
 
 var g_open_issues = new Dygraph('issues', issues_by_day,
     extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Open Issues'],
-      title: 'Open Issues',
       fillGraph: true
     }));
 
 var g_pulls = new Dygraph('pulls', pulls_by_day,
     extend(BASE_CHART_OPTIONS, {
       labels: ['Date', 'Open Pull Requests'],
-      title: 'Open Pull Requests',
       fillGraph: true
     }));
 
@@ -73,7 +70,6 @@ $.getJSON(window.location + '/json?include_labels=True').then(function(data) {
       extend(BASE_CHART_OPTIONS, {
         labels: issues_by_label[0],
         labelsDiv: 'by-label-legend',
-        title: 'Open Issues by Label',
         highlightSeriesOpts: {
           strokeWidth: 2
         }
