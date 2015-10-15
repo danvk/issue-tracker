@@ -30,10 +30,10 @@ def get_github():
         return Github()
 
 
-def fetch_stats_from_github(owner, repo):
+def fetch_stats_from_github(owner, repo_name):
     start_secs = time.time()
     g = get_github()
-    repo = g.get_user(owner).get_repo(repo)
+    repo = g.get_user(owner).get_repo(repo_name)
 
     stargazers = repo.stargazers_count
     open_issues = repo.open_issues_count
@@ -46,7 +46,8 @@ def fetch_stats_from_github(owner, repo):
             label_to_count[label] += 1
 
     end_secs = time.time()
-    print 'Fetched %d GitHub issues in %f secs' % (open_issues, end_secs - start_secs)
+    print 'Fetched %d GitHub issues from %s/%s in %f secs' % (
+            open_issues, owner, repo_name, end_secs - start_secs)
 
     return RepoStats(stargazers=stargazers,
                      open_issues=open_issues,
