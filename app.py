@@ -100,11 +100,11 @@ def backfill(owner, repo):
 @app.route('/<owner>/<repo>/add', methods=['POST'])
 def add_repo(owner, repo):
     if not g.user:
-        flash('You must be signed in to force an update!', 'error')
-        return stats(owner, repo)
+        flash('You must be signed in to force an update!', 'danger')
+        return redirect(url_for('stats', owner=owner, repo=repo))
     if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
-        flash('You must have push rights to a repo to update its charts.', 'error')
-        return stats(owner, repo)
+        flash('You must have push rights to a repo to update its charts.', 'danger')
+        return redirect(url_for('stats', owner=owner, repo=repo))
     db.add_repo(owner, repo, g.user.token)
     flash('This repo is now being tracked', 'success')
     return redirect(url_for('stats', owner=owner, repo=repo))
@@ -113,11 +113,11 @@ def add_repo(owner, repo):
 @app.route('/<owner>/<repo>/update', methods=['POST'])
 def update(owner, repo):
     if not g.user:
-        flash('You must be signed in to force an update!', 'error')
-        return stats(owner, repo)
+        flash('You must be signed in to force an update!', 'danger')
+        return redirect(url_for('stats', owner=owner, repo=repo))
     if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
-        flash('You must have push rights to a repo to update its charts.', 'error')
-        return stats(owner, repo)
+        flash('You must have push rights to a repo to update its charts.', 'danger')
+        return redirect(url_for('stats', owner=owner, repo=repo))
     observe_and_add(owner, repo)
     flash('A new data point has been added to all charts.', 'success')
     return redirect(url_for('stats', owner=owner, repo=repo))
