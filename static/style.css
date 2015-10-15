@@ -1,8 +1,3 @@
-#login {
-  display: table;
-  float: right;
-}
-
 .chart {
   width: 100%;
   max-width: 800px;
@@ -41,4 +36,7 @@ footer {
 }
 .muted {
   color: #777;
+}
+.login-name {
+  font-size: 14px;
 }

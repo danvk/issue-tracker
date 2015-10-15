@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     {% block head %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <title>{% block title %}{% endblock %} - GitHub Issue Tracker</title>
     {% endblock %}
   </head>
@@ -32,13 +32,20 @@
           -->
         </ul>
         <ul class="nav navbar-nav navbar-right">
-          <li class="login">
-            {% if login %}
-            {{login}} | <a href="/logout">Log Out</a>
-            {% else %}
-            <a href="/login">Log In</a>
-            {% endif %}
+          {% if login %}
+          <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">{{login}}<span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li class="login-name dropdown-header">Signed in as {{login}}</li>
+            <li role="separator" class="divider"></li>
+            <li><a href="/logout">Sign Out</a></li>
+          </ul>
           </li>
+          {% else %}
+          <li class="login">
+            <a href="/login">Sign In</a>
+          </li>
+          {% endif %}
         </ul>
       </div><!--/.nav-collapse -->
     </div>

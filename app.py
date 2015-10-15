@@ -100,7 +100,7 @@ def backfill(owner, repo):
 @app.route('/<owner>/<repo>/add', methods=['POST'])
 def add_repo(owner, repo):
     if not g.user:
-        flash('You must be logged in to force an update!', 'error')
+        flash('You must be signed in to force an update!', 'error')
         return stats(owner, repo)
     if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
         flash('You must have push rights to a repo to update its charts.', 'error')
@@ -113,7 +113,7 @@ def add_repo(owner, repo):
 @app.route('/<owner>/<repo>/update', methods=['POST'])
 def update(owner, repo):
     if not g.user:
-        flash('You must be logged in to force an update!', 'error')
+        flash('You must be signed in to force an update!', 'error')
         return stats(owner, repo)
     if not tracker.can_user_push_to_repo(g.user.token, owner, repo):
         flash('You must have push rights to a repo to update its charts.', 'error')
@@ -145,7 +145,7 @@ def login():
     if session.get('user_id', None) is None:
         return github.authorize()
     else:
-        return 'Already logged in'
+        return 'Already signed in'
 
 
 @app.route('/logout')
